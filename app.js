@@ -32,11 +32,16 @@ app.use(function (req, res, next) {
 
 /*ADD Topics*/
 
+/*ADD Topics*/
+
 app.post('/create_topic', function(req, res){
+
+
   let addDoc = db.collection('topics').add({
     name: req.body.Name,
     imageLink: req.body.ImageLink,
-    group: req.body.Group
+    group: req.body.Group,
+    user_id: req.body.user_id,
   }).then(ref => {
      res.send({status:true,ref:ref})
   });
@@ -48,14 +53,31 @@ app.post('/create_topic', function(req, res){
 /*Register*/
 app.post('/register', function(req, res){
 
-   console.log(req.body)
-    let addDoc = db.collection('users').add({
-      email: req.body.email,
-      pass: req.body.pass,
-      role:''
-    }).then(ref => {
-       res.send({status:true,ref:ref})
-    });
+    let users = db.collection('users');
+    let check_user_email = users.where('email', '==', req.body.email).get()
+    check_user_email.then(top => {
+        
+         var data = [];
+
+         if (top.empty) {
+
+           let addDoc = db.collection('users').add({
+                email: req.body.email,
+                pass: req.body.pass,
+                role:''
+              }).then(ref => {
+                 res.send({status:true,id:ref.id})
+              });
+            
+        } else{
+
+          res.send({status:false,message:"Email already exists."})
+            return;
+           
+
+        }
+      })
+   
 })
 
 /*Register*/
@@ -109,7 +131,7 @@ app.post('/login', function(req, res){
 
 
 /*Login*/
-app.post('/login', function(req, res){
+/*app.post('/login', function(req, res){
 
    console.log(req.body)
     let addDoc = db.collection('users').add({
@@ -119,7 +141,7 @@ app.post('/login', function(req, res){
     }).then(ref => {
        res.send({status:true,ref:ref})
     });
-})
+})*/
 
 
 /*Get Users*/
@@ -161,35 +183,74 @@ app.post('/get_users', function(req, res){
 /*Get Topics*/
 
 app.post('/get_topics', function(req, res){
-  let get_doc = db.collection('topics').get();
+  if(req.body.user_id != undefined){
 
-    get_doc.then(top => {
-      if (top.empty) {
-        console.log('No matching documents.');
-        return;
-      }  
-       var data = [];
+       let query = db.collection('topics').get();
+       //let query = get_doc.where('user_id', '==', req.body.user_id).get()
 
-      top.forEach(doc => {
-        if(doc.data().group!=undefined){
-           data.push({
-              id:doc.id,
-              group:doc.data().group,
-              imageLink:doc.data().imageLink,
-              name:doc.data().name,
-            })
 
-        }
-       
+        query.then(top => {
+          if (top.empty) {
+            console.log('No matching documents.');
+            return;
+          }  
+           var data = [];
 
-      });
+          top.forEach(doc => {
 
-      res.send({status:true,data:data})
-    })
-    .catch(err => {
-      console.log('Error getting documents', err);
-    });
+             if(req.body.user_role!="admin"){ 
+              if(doc.data().users){
+                var all_users = doc.data().users
+                if (all_users.indexOf(req.body.user_id) > -1) {
 
+                    data.push({
+                      id:doc.id,
+                      group:doc.data().group,
+                      imageLink:doc.data().imageLink,
+                      name:doc.data().name,
+                    })
+                    
+                }
+                   
+              }else{
+
+                  if(req.body.user_id==doc.data().user_id){
+                      data.push({
+                        id:doc.id,
+                        group:doc.data().group,
+                        imageLink:doc.data().imageLink,
+                        name:doc.data().name,
+                      })
+
+                  }
+                   
+
+              }
+            }else{
+
+              if(req.body.user_id==doc.data().user_id){
+                      data.push({
+                        id:doc.id,
+                        group:doc.data().group,
+                        imageLink:doc.data().imageLink,
+                        name:doc.data().name,
+                      })
+
+                  }
+
+            }
+         
+          });
+
+          res.send({status:true,data:data})
+        })
+        .catch(err => {
+          console.log('Error getting documents', err);
+        });
+
+
+  }
+ 
 });
 
 
@@ -205,7 +266,6 @@ app.post('/add_lession', function(req, res){
   });
 
 });
-
 
 /*Get Lession*/
 
@@ -239,6 +299,7 @@ app.post('/get_lession', function(req, res){
 
 
 
+/*Delete lession*/
 app.post('/delete_lession', function(req, res){
 
      db.collection('lessons').doc(req.body.lession_id).delete();
@@ -246,6 +307,8 @@ app.post('/delete_lession', function(req, res){
 
 })
 
+
+/*Update lession*/
 app.post('/update_lession', function(req, res){
 
     let data = {
@@ -257,6 +320,8 @@ app.post('/update_lession', function(req, res){
     res.send({status:true})
 })
 
+
+/*Add lesson sentence*/
 app.post('/add_lesson_sentence', function(req, res){
 
      let addDoc = db.collection('Sentence').add({
@@ -268,9 +333,9 @@ app.post('/add_lesson_sentence', function(req, res){
       }).then(ref => {
          res.send({status:true,ref:ref})
       });
-    
 })
 
+/*Get sentence*/
 app.post('/get_Sentence', function(req, res){
   console.log(req.body.lesson_id);
   let Sentence = db.collection('Sentence');
@@ -299,6 +364,7 @@ app.post('/get_Sentence', function(req, res){
 
 });
 
+/*Delete sentence*/
 app.post('/delete_Sentence', function(req, res){
 
      db.collection('Sentence').doc(req.body.Sentence_id).delete();
@@ -306,6 +372,7 @@ app.post('/delete_Sentence', function(req, res){
 
 });
 
+/*Update sentence*/
 app.post('/update_Sentence', function(req, res){
 
     let data = {
@@ -319,6 +386,131 @@ app.post('/update_Sentence', function(req, res){
     db.collection('Sentence').doc(req.body.Sentence_id).set(data);
     res.send({status:true})
 })
+
+/*Get unique groups*/
+app.post('/get_groups', function(req, res){
+ 
+
+       let get_doc = db.collection('topics').get();
+
+
+        get_doc.then(top => {
+          if (top.empty) {
+            console.log('No matching documents.');
+            return;
+          }  
+           var data = [];
+
+          top.forEach(doc => {
+            if(doc.data().group){
+               data.push({
+                  id:doc.id,
+                  group:doc.data().group,
+                  users:doc.data().users,
+                })
+            }
+
+          });
+
+          res.send({status:true,data:data})
+        })
+        .catch(err => {
+          console.log('Error getting documents', err);
+        });
+
+
+
+ 
+});
+
+/*Get unique groups*/
+app.post('/assign_groups', function(req, res){
+
+      console.log(req.body.group);
+      var groups = req.body.group;
+       groups.forEach(g => {
+       
+         console.log(g);
+     
+
+    
+
+       let get_doc = db.collection('topics');
+       let query = get_doc.where('group', '==', g).get()
+
+
+        query.then(top => {
+          if (top.empty) {
+            console.log('No matching documents.');
+            return;
+          }  
+           var data = [];
+
+          top.forEach(doc => {
+
+              if(doc.data().users){
+                var all_users = doc.data().users.split(',');
+
+                console.log(all_users);
+                if (all_users.indexOf(req.body.user_id) > -1) {
+                    console.log('yes');
+                }else{
+                   var users = doc.data().users +','+req.body.user_id;
+                   let data = {
+                       group: doc.data().group,
+                      imageLink: doc.data().imageLink,
+                      name: doc.data().name,
+                      user_id: doc.data().user_id,
+                      users :users
+                    };
+
+                     db.collection('topics').doc(doc.id).set(data);
+                }
+               
+
+              }else{
+                 let data = {
+                    group: doc.data().group,
+                    imageLink: doc.data().imageLink,
+                    name: doc.data().name,
+                    user_id: doc.data().user_id,
+                    users :req.body.user_id
+                  };
+                   db.collection('topics').doc(doc.id).set(data);
+
+
+              }
+              console.log(data);
+
+              return false
+
+         
+             
+           
+          
+             console.log(doc.data().group);
+            
+          });
+
+          //res.send({status:true,data:data})
+        })
+        .catch(err => {
+          console.log('Error getting documents', err);
+        });
+        })  
+})
+
+app.post('/isadmin', function(req, res){
+  console.log(req.body)
+
+  return false
+     let lessons = db.collection('users').doc(req.body.users_id).get();
+    lessons.then(top => {
+      c
+
+    })
+})
+
 
 
 const port = process.env.PORT || 5000;
