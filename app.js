@@ -37,14 +37,14 @@ app.use(function (req, res, next) {
 app.post('/create_topic', function(req, res){
 
 
-  let addDoc = db.collection('topics').add({
-    name: req.body.Name,
-    imageLink: req.body.ImageLink,
-    group: req.body.Group,
-    user_id: req.body.user_id,
-  }).then(ref => {
-     res.send({status:true,ref:ref})
-  });
+    let addDoc = db.collection('topics').add({
+      name: req.body.Name,
+      imageLink: req.body.ImageLink,
+      group: req.body.Group,
+      user_id: req.body.user_id,
+    }).then(ref => {
+       res.send({status:true,ref:ref})
+    });
 
 });
 
@@ -149,6 +149,8 @@ app.post('/login', function(req, res){
 app.post('/get_users', function(req, res){
   let get_doc = db.collection('users').get();
 
+
+
     get_doc.then(top => {
       if (top.empty) {
         console.log('No matching documents.');
@@ -157,12 +159,17 @@ app.post('/get_users', function(req, res){
        var data = [];
 
       top.forEach(doc => {
-          if(doc.data().role == ''){
+          if(doc.data().role == 'admin' || doc.data().role == '' ){
+             if(req.body.user_id != doc.id){
+               data.push({
+                  id:doc.id,
+                  email:doc.data().email,
+                  role:doc.data().role,
+                })
 
-             data.push({
-              id:doc.id,
-              email:doc.data().email,
-            })
+             }
+
+            
 
           }
           
@@ -198,7 +205,7 @@ app.post('/get_topics', function(req, res){
 
           top.forEach(doc => {
 
-             if(req.body.user_role!="admin"){ 
+            if(req.body.user_role!="superadmin"){ 
               if(doc.data().users){
                 var all_users = doc.data().users
                 if (all_users.indexOf(req.body.user_id) > -1) {
@@ -430,7 +437,7 @@ app.post('/assign_groups', function(req, res){
       var groups = req.body.group;
        groups.forEach(g => {
        
-         console.log(g);
+         console.log(g,'----');
      
 
     
@@ -451,7 +458,7 @@ app.post('/assign_groups', function(req, res){
               if(doc.data().users){
                 var all_users = doc.data().users.split(',');
 
-                console.log(all_users);
+               
                 if (all_users.indexOf(req.body.user_id) > -1) {
                     console.log('yes');
                 }else{
@@ -492,7 +499,7 @@ app.post('/assign_groups', function(req, res){
             
           });
 
-          //res.send({status:true,data:data})
+          res.send({status:true,data:data})
         })
         .catch(err => {
           console.log('Error getting documents', err);
@@ -501,16 +508,49 @@ app.post('/assign_groups', function(req, res){
 })
 
 app.post('/isadmin', function(req, res){
-  console.log(req.body)
+  console.log(req.body.value)
 
-  return false
-     let lessons = db.collection('users').doc(req.body.users_id).get();
-    lessons.then(top => {
-      c
 
-    })
+     let get_doc = db.collection('users').where("email","==",req.body.email).get();
+     get_doc.then(data => {
+          if (data.empty) {
+            console.log('No matching documents.');
+            return;
+          }  
+          
+          data.forEach(doc => {
+            console.log(doc.data().email);
+            if(req.body.value == false){
+               let data = {
+                  email : doc.data().email,
+                  pass : doc.data().pass,
+                  role : ""
+                 
+              };
+               db.collection('users').doc(req.body.user_id).set(data);
+
+            }else{
+               let data = {
+                  email : doc.data().email,
+                  pass : doc.data().pass,
+                  role : "admin"
+                 
+              };
+               db.collection('users').doc(req.body.user_id).set(data);
+            }
+
+            
+
+          
+
+          });
+
+          res.send({status:true,value:req.body.value})
+        })
+        .catch(err => {
+          console.log('Error getting documents', err);
+        });
 })
-
 
 
 const port = process.env.PORT || 5000;
