@@ -14,7 +14,7 @@
 		"child_process": "^1.0.2",
 		"exec-php": "0.0.5",
 		"express": "3.4.4",
-		"firebase-admin": "^8.6.0",
+		"firebase-admin": "^11.4.1",
 		"ftp-client": "^0.2.2",
 		"google-auth-library": "^5.4.0",
 		"google-spreadsheet": "^2.0.8",
